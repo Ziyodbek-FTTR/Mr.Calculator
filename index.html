@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr.Calculator</title>
+    <!-- Math engine: math.js (parser, symbolic derivative, matrices, statistics). No eval() is used anywhere. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"></script>
+    <style>
+        /* ===== CSS VARIABLES ===== */
+        :root {
+            --navy: #0f1f3d;
+            --blue: #2563eb;
+            --blue-d: #1d4ed8;
+            --tint: #eaf1ff;
+            --bg: #f5f7fb;
+            --line: #e0e5ed;
+            --text: #172033;
+            --mute: #5f6b7d;
+            --ok: #16794c;
+            --okbg: #ecf8f2;
+            --err: #b42318;
+            --errbg: #fdf0ee
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text)
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font: inherit;
+            color: inherit
+        }
+
+        /* ===== LAYOUT ===== */
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column
+        }
+
+        header {
+            height: 68px;
+            background: var(--navy);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 34px
+        }
+
+        .brand {
+            font-size: 23px;
+            font-weight: 800;
+            letter-spacing: -.5px;
+            color: #fff
+        }
+
+        .brand span {
+            color: #6ea0ff
+        }
+
+        nav {
+            display: flex;
+            gap: 26px
+        }
+
+        nav button {
+            border: 0;
+            background: none;
+            color: #aebbd3;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 8px 2px;
+            border-bottom: 2px solid transparent
+        }
+
+        nav button:hover {
+            color: #fff
+        }
+
+        nav button.active {
+            color: #fff;
+            border-color: #6ea0ff
+        }
+
+        .layout {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr)
+        }
+
+        aside {
+            background: #fff;
+            border-right: 1px solid var(--line);
+            padding: 24px 16px
+        }
+
+        .side-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #8a94a6;
+            margin: 18px 12px 8px
+        }
+
+        .side-title:first-child {
+            margin-top: 0
+        }
+
+        .category {
+            width: 100%;
+            text-align: left;
+            border: 0;
+            background: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--mute);
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 2px
+        }
+
+        .category:hover {
+            background: #f2f5fa;
+            color: var(--text)
+        }
+
+        .category.selected {
+            background: var(--tint);
+            color: var(--blue);
+            font-weight: 700
+        }
+
+        main {
+            padding: 40px 48px;
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 30px;
+            letter-spacing: -.7px
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            color: var(--mute);
+            font-size: 15px
+        }
+
+        .workspace {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 24px
+        }
+
+        /* ===== FORM CONTROLS ===== */
+        .ops {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px
+        }
+
+        .op {
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--mute)
+        }
+
+        .op.on {
+            background: var(--navy);
+            border-color: var(--navy);
+            color: #fff
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin: 0 0 7px
+        }
+
+        .field {
+            margin-bottom: 14px
+        }
+
+        .hint {
+            font-size: 12.5px;
+            color: var(--mute);
+            margin-top: 5px
+        }
+
+        input[type=text],
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid #cfd6e2;
+            border-radius: 9px;
+            padding: 12px 14px;
+            font-size: 17px;
+            background: #fff;
+            outline: none
+        }
+
+        textarea {
+            resize: vertical
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px var(--tint)
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 9px;
+            padding: 13px 26px;
+            background: var(--blue);
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            cursor: pointer
+        }
+
+        .btn:hover {
+            background: var(--blue-d)
+        }
+
+        .btn.ghost {
+            background: #fff;
+            color: var(--blue);
+            border: 1px solid #cfd6e2;
+            font-weight: 600;
+            padding: 12px 16px
+        }
+
+        .btn.ghost:hover {
+            background: var(--tint)
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center
+        }
+
+        /* ===== RESULT ===== */
+        .result {
+            margin-top: 24px;
+            border-top: 1px solid #e8ebf0;
+            padding-top: 20px
+        }
+
+        .rhead {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 15px
+        }
+
+        .rhead span {
+            color: #8a94a6;
+            font-size: 13px
+        }
+
+        #answer {
+            min-height: 76px;
+            background: #f7f9fc;
+            border: 1px solid #e5e9f0;
+            border-radius: 10px;
+            padding: 18px 20px;
+            font-size: 24px;
+            font-weight: 700;
+            overflow-wrap: anywhere
+        }
+
+        #answer.ok {
+            background: var(--okbg);
+            border-color: #bfe5d1;
+            color: var(--ok)
+        }
+
+        #answer.err {
+            background: var(--errbg);
+            border-color: #f3c6c0;
+            color: var(--err);
+            font-size: 16px;
+            font-weight: 600
+        }
+
+        .kv {
+            display: grid;
+            grid-template-columns: max-content 1fr;
+            gap: 6px 22px;
+            font-size: 17px
+        }
+
+        .kv b {
+            color: var(--mute);
+            font-weight: 600
+        }
+
+        table.mx {
+            border-collapse: collapse;
+            font-size: 18px
+        }
+
+        table.mx td {
+            padding: 6px 14px;
+            border-left: 2px solid var(--navy);
+            border-right: 2px solid var(--navy);
+            text-align: right
+        }
+
+        .steps {
+            margin-top: 14px;
+            border: 1px solid #e5e9f0;
+            border-radius: 10px;
+            padding: 14px 18px
+        }
+
+        .steps summary {
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px
+        }
+
+        .steps ol {
+            margin: 12px 0 0;
+            padding-left: 22px;
+            color: #3a465b;
+            font-size: 15px;
+            line-height: 1.75
+        }
+
+        /* ===== GRAPHING ===== */
+        .grow {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center
+        }
+
+        .grow i {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex: none
+        }
+
+        .grow input {
+            font-size: 16px;
+            padding: 9px 12px
+        }
+
+        .grow .bad {
+            border-color: var(--err)
+        }
+
+        #cv {
+            width: 100%;
+            height: 480px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            cursor: grab;
+            display: block;
+            touch-action: none;
+            background: #fff
+        }
+
+        #cv:active {
+            cursor: grabbing
+        }
+
+        /* ===== HISTORY / SETTINGS ===== */
+        .hitem {
+            padding: 12px 0;
+            border-bottom: 1px solid #eef1f5;
+            font-size: 15px
+        }
+
+        .hitem small {
+            color: #8a94a6;
+            display: block;
+            margin-bottom: 2px
+        }
+
+        .set {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 10px 20px;
+            align-items: center;
+            max-width: 560px
+        }
+
+        .set select {
+            font-size: 15px;
+            padding: 9px 12px
+        }
+
+        @media(max-width:800px) {
+            .layout {
+                grid-template-columns: 1fr
+            }
+
+            aside {
+                border-right: 0;
+                border-bottom: 1px solid var(--line)
+            }
+
+            main {
+                padding: 24px 18px
+            }
+
+            header {
+                padding: 0 18px
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <header>
+            <div class="brand">Mr<span>.</span>Calculator</div>
+            <nav>
+                <button id="homeBtn" class="active" type="button">Home</button>
+                <button id="historyBtn" type="button">History</button>
+                <button id="settingsBtn" type="button">Settings</button>
+            </nav>
+        </header>
+        <div class="layout">
+            <aside id="side"></aside>
+            <main id="main"></main>
+        </div>
+    </div>
+
+    <script>
+        /* =====================================================================
+           STATE + SETTINGS  (session only: nothing is written to localStorage)
+           ===================================================================== */
+        const S = {deg: true, prec: 6, notation: 'auto'};
+        const hist = [];
+        let view = 'home', cat = 'solve', opi = 0;
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+        /* =====================================================================
+           MATHEMATICAL ENGINE (math.js parser + helpers)
+           ===================================================================== */
+        /* Convert natural notation into math.js syntax. */
+        function pre(s) {
+            return s.replace(/×|·/g, '*').replace(/÷/g, '/').replace(/[−–]/g, '-').replace(/π/g, 'pi')
+                .replace(/√\s*\(/g, 'sqrt(').replace(/√\s*([0-9.]+|[a-z]+)/gi, 'sqrt($1)')
+                .replace(/°/g, ' deg').replace(/²/g, '^2').replace(/³/g, '^3').replace(/\bln\b/g, 'log');
+        }
+        /* Angle handling: math.js is radian-based, so wrap trig functions to obey the Degrees/Radians setting. */
+        const toRad = x => math.typeOf(x) === 'Unit' ? x.toNumber('rad') : (S.deg ? x * Math.PI / 180 : x);
+        const fromRad = x => S.deg ? x * 180 / Math.PI : x;
+        function scope() {
+            return {
+                sin: x => math.sin(toRad(x)), cos: x => math.cos(toRad(x)), tan: x => math.tan(toRad(x)),
+                asin: x => fromRad(Math.asin(x)), acos: x => fromRad(Math.acos(x)), atan: x => fromRad(Math.atan(x))
+            };
+        }
+        /* Format a value using the precision / notation settings. */
+        function fmt(v) {
+            if (typeof v === 'number') {
+                if (!isFinite(v)) throw new Error('The result is not a finite number (division by zero or overflow).');
+                if (S.notation === 'sci') return v.toExponential(S.prec);
+                if (S.notation === 'fixed') return v.toFixed(S.prec);
+                const r = +v.toFixed(S.prec);
+                return String(r === 0 && v !== 0 ? v.toExponential(Math.max(S.prec - 1, 1)) : r);
+            }
+            return math.format(v, {precision: Math.max(S.prec, 1) + 2});
+        }
+        const n = fmt;
+        const isZero = v => Math.abs(v) < 1e-12;
+        /* Signed term helper: " + 5x" / " − 5x" */
+        const term = (c, t) => (c < 0 ? ' − ' : ' + ') + n(Math.abs(c)) + t;
+        function hasVar(expr, name) {return math.parse(expr).filter(nd => nd.isSymbolNode && nd.name === name).length > 0;}
+        function num(str, what) {
+            const v = math.evaluate(pre(str), scope());
+            if (typeof v !== 'number' || !isFinite(v)) throw new Error(what + ' must be a finite number.');
+            return v;
+        }
+        function list(str, what) {
+            const a = str.split(/[\s,;]+/).filter(Boolean).map(Number);
+            if (!a.length || a.some(isNaN)) throw new Error(what + ': enter numbers separated by commas or spaces, e.g. 4, 8, 15, 16.');
+            return a;
+        }
+        function matrix(str, what) {
+            const m = math.evaluate(pre(str));
+            const a = m && m.toArray ? m.toArray() : null;
+            if (!a || !Array.isArray(a[0])) throw new Error(what + ' must be a matrix such as [[1,2],[3,4]].');
+            return a;
+        }
+
+        /* =====================================================================
+           TOOLS: each operation = { name, fields[], ex[], run(...values) -> {answer, steps} }
+           ===================================================================== */
+        /* ---- Calculator ---- */
+        const calculatorOps = [{
+            name: 'Evaluate', fields: [{l: 'Expression', ph: 'e.g. (25 + 15) × 3', hint: 'Supports + − × ÷ ^ √ ! % brackets, π, e, sin cos tan, ln, log10, sqrt, scientific notation (1.5e3) and units of angle such as 30 deg.'}],
+            ex: ['(25 + 15) × 3'],
+            run(e) {
+                const p = pre(e), r = math.evaluate(p, scope());
+                if (r === undefined || typeof r === 'function') throw new Error('That is not a calculable expression.');
+                return {answer: fmt(r), steps: ['Read the input as: ' + p, 'Evaluated following the order of operations (brackets, powers, × ÷, + −). Trigonometry uses ' + (S.deg ? 'degrees' : 'radians') + '.', 'Result: ' + fmt(r), 'Note: a line-by-line breakdown of arbitrary expressions is not generated; the value is computed exactly by the parser.']};
+            }
+        }];
+        /* ---- Algebra ---- */
+        function quadCoeffs(L, R) {
+            const f = x => {const v = math.evaluate('(' + L + ')-(' + R + ')', Object.assign({x}, scope())); if (typeof v !== 'number') throw new Error('Unsupported expression.'); return v;};
+            const c = f(0), a = (f(1) + f(-1)) / 2 - c, b = (f(1) - f(-1)) / 2;
+            [2, 3, -2].forEach(x => {if (Math.abs(f(x) - (a * x * x + b * x + c)) > 1e-7 * (1 + Math.abs(f(x)))) throw new Error('Only linear and quadratic equations in x are supported here.');});
+            return {a, b, c};
+        }
+        function solveEquation(eq) {
+            const parts = pre(eq).split('=');
+            if (parts.length !== 2 || !parts[0].trim() || !parts[1].trim()) throw new Error('Enter exactly one equation containing "=", e.g. 2x + 5 = 15.');
+            const [L, R] = parts;
+            if (!hasVar(L, 'x') && !hasVar(R, 'x')) throw new Error('The equation must contain the variable x.');
+            const {a, b, c} = quadCoeffs(L, R);
+            const check = x => 'Check: substituting x = ' + n(x) + ' gives ' + n(math.evaluate(L, {x})) + ' on the left and ' + n(math.evaluate(R, {x})) + ' on the right.';
+            const st = ['Move all terms to one side: ' + (isZero(a) ? '' : n(a) + 'x²') + (isZero(b) ? '' : (isZero(a) ? n(b) : term(b, '')) + 'x') + (isZero(c) ? '' : (isZero(a) && isZero(b) ? n(c) : term(c, ''))) + ' = 0'];
+            if (isZero(a) && isZero(b)) return {answer: isZero(c) ? 'Infinitely many solutions (identity)' : 'No solution', steps: st.concat(isZero(c) ? ['Both sides are always equal.'] : ['This reduces to ' + n(c) + ' = 0, which is false.'])};
+            if (isZero(a)) {
+                const x = -c / b;
+                return {answer: 'x = ' + n(x), steps: st.concat(['Subtract ' + n(c) + ' from both sides: ' + n(b) + 'x = ' + n(-c), 'Divide both sides by ' + n(b) + ': x = ' + n(-c) + ' / ' + n(b) + ' = ' + n(x), check(x)])};
+            }
+            const D = b * b - 4 * a * c;
+            st.push('Identify a = ' + n(a) + ', b = ' + n(b) + ', c = ' + n(c), 'Discriminant D = b² − 4ac = ' + n(b) + '² − 4·' + n(a) + '·' + n(c) + ' = ' + n(D));
+            if (isZero(D)) {const x = -b / (2 * a); return {answer: 'x = ' + n(x) + ' (repeated root)', steps: st.concat(['D = 0, so there is one repeated root: x = −b / 2a = ' + n(x), check(x)])};}
+            if (D > 0) {
+                const x1 = (-b + Math.sqrt(D)) / (2 * a), x2 = (-b - Math.sqrt(D)) / (2 * a);
+                return {answer: [['x₁', n(x1)], ['x₂', n(x2)]], steps: st.concat(['D > 0, so there are two real roots: x = (−b ± √D) / 2a', 'x₁ = (' + n(-b) + ' + √' + n(D) + ') / ' + n(2 * a) + ' = ' + n(x1), 'x₂ = (' + n(-b) + ' − √' + n(D) + ') / ' + n(2 * a) + ' = ' + n(x2), check(x1), check(x2)])};
+            }
+            const re = -b / (2 * a), im = Math.sqrt(-D) / (2 * Math.abs(a));
+            return {answer: [['x₁', n(re) + ' + ' + n(im) + 'i'], ['x₂', n(re) + ' − ' + n(im) + 'i']], steps: st.concat(['D < 0, so there are no real roots; the roots are complex conjugates.', 'x = −b / 2a ± (√(−D) / 2a)i = ' + n(re) + ' ± ' + n(im) + 'i'])};
+        }
+        function solveSystem(text) {
+            const eqs = text.split(/[\n;]+/).map(s => s.trim()).filter(Boolean);
+            if (eqs.length !== 2) throw new Error('Enter exactly two equations in x and y, one per line.');
+            const co = eqs.map(q => {
+                const p = pre(q).split('=');
+                if (p.length !== 2) throw new Error('Each line must be an equation containing "=".');
+                const f = (x, y) => {const v = math.evaluate('(' + p[0] + ')-(' + p[1] + ')', Object.assign({x, y}, scope())); if (typeof v !== 'number') throw new Error('Unsupported expression.'); return v;};
+                const c = f(0, 0), a = f(1, 0) - c, b = f(0, 1) - c;
+                if (Math.abs(f(1, 1) - (a + b + c)) > 1e-9 || Math.abs(f(2, -1) - (2 * a - b + c)) > 1e-9) throw new Error('Only linear equations in x and y are supported.');
+                return {a, b, k: -c};
+            });
+            const [e1, e2] = co, D = e1.a * e2.b - e2.a * e1.b;
+            const eq = e => n(e.a) + 'x' + term(e.b, 'y') + ' = ' + n(e.k);
+            const st = ['Write in standard form:', '   (1) ' + eq(e1), '   (2) ' + eq(e2), 'Cramer\'s rule: D = a₁b₂ − a₂b₁ = ' + n(D)];
+            if (isZero(D)) return {answer: 'No unique solution', steps: st.concat(['D = 0: the lines are parallel (no solution) or identical (infinitely many).'])};
+            const Dx = e1.k * e2.b - e2.k * e1.b, Dy = e1.a * e2.k - e2.a * e1.k, x = Dx / D, y = Dy / D;
+            return {answer: [['x', n(x)], ['y', n(y)]], steps: st.concat(['Dx = k₁b₂ − k₂b₁ = ' + n(Dx), 'Dy = a₁k₂ − a₂k₁ = ' + n(Dy), 'x = Dx / D = ' + n(x), 'y = Dy / D = ' + n(y), 'Check (1): ' + n(e1.a * x + e1.b * y) + ' = ' + n(e1.k) + ';  check (2): ' + n(e2.a * x + e2.b * y) + ' = ' + n(e2.k)])};
+        }
+        const algebraOps = [
+            {name: 'Solve equation', fields: [{l: 'Equation in x', ph: 'e.g. 2x + 5 = 15', hint: 'Linear or quadratic, such as x² + 5x + 6 = 0.'}], ex: ['x² + 5x + 6 = 0'], run: solveEquation},
+            {name: 'Solve system (2 unknowns)', fields: [{l: 'Two equations in x and y', ph: '2x + y = 10\nx - y = 2', area: 1, hint: 'One equation per line (or separated by ;).'}], ex: ['2x + y = 10\nx - y = 2'], run: solveSystem},
+            {
+                name: 'Simplify', fields: [{l: 'Expression', ph: 'e.g. 2x + 3x - x^2 + 4x^2'}], ex: ['2x + 3x - x^2 + 4x^2'],
+                run(e) {const r = math.simplify(pre(e)).toString(); return {answer: r, steps: ['Collected like terms and applied algebraic rewrite rules to: ' + pre(e), 'Simplified form: ' + r, 'Note: expanding and factoring are not available yet.']};}
+            }
+        ];
+        /* ---- Calculus ---- */
+        const calculusOps = [
+            {
+                name: 'Derivative', fields: [{l: 'Function of x', ph: 'e.g. x^2 * sin(x)'}, {l: 'Order (1 = first derivative)', ph: '1', opt: 1}, {l: 'Slope at x = (optional)', ph: 'e.g. 2', opt: 1}],
+                ex: ['x^3 + 2x', '2', ''],
+                run(f, ord, at) {
+                    const k = ord ? Math.round(num(ord, 'Order')) : 1;
+                    if (k < 1 || k > 6) throw new Error('Order must be between 1 and 6.');
+                    let d = math.parse(pre(f)); const st = ['f(x) = ' + d.toString()];
+                    for (let i = 1; i <= k; i++) {d = math.simplify(math.derivative(d, 'x')); st.push('Differentiate (power, product, quotient and chain rules) and simplify: f' + "′".repeat(i > 3 ? 1 : i) + (i > 3 ? '⁽' + i + '⁾' : '') + '(x) = ' + d.toString());}
+                    const out = [['f' + (k > 1 ? '⁽' + k + '⁾' : '′') + '(x)', d.toString()]];
+                    if (at) {const x = num(at, 'x'), v = d.evaluate(Object.assign({x}, scope())); out.push(['Value at x = ' + n(x), n(v)]); st.push('Substitute x = ' + n(x) + ': ' + n(v));}
+                    return {answer: out, steps: st};
+                }
+            },
+            {
+                name: 'Definite integral', fields: [{l: 'Function of x', ph: 'e.g. x^2'}, {l: 'Lower limit a', ph: '0'}, {l: 'Upper limit b', ph: '3'}], ex: ['x^2', '0', '3'],
+                run(f, A, B) {
+                    const a = num(A, 'Lower limit'), b = num(B, 'Upper limit'), node = math.compile(pre(f)), sc = scope(), N = 2000, h = (b - a) / N;
+                    const g = x => {sc.x = x; const v = node.evaluate(sc); if (typeof v !== 'number' || !isFinite(v)) throw new Error('The function is undefined or infinite at x = ' + n(x) + '; the integral cannot be computed numerically.'); return v;};
+                    let s = g(a) + g(b); for (let i = 1; i < N; i++) s += g(a + i * h) * (i % 2 ? 4 : 2);
+                    const v = s * h / 3;
+                    return {answer: '≈ ' + n(v), steps: ['Compute ∫ from ' + n(a) + ' to ' + n(b) + ' of ' + pre(f) + ' dx', 'Method: Simpson\'s rule with 2000 sub-intervals (numerical approximation, no symbolic antiderivative is shown).', 'Result ≈ ' + n(v), 'Indefinite integrals are not available yet.']};
+                }
+            },
+            {
+                name: 'Limit', fields: [{l: 'Function of x', ph: 'e.g. sin(x)/x'}, {l: 'x approaches', ph: '0'}], ex: ['sin(x)/x', '0'],
+                run(f, P) {
+                    const p = num(P, 'Target'), node = math.compile(pre(f)), sc = scope();
+                    const g = x => {sc.x = x; const v = node.evaluate(sc); return typeof v === 'number' ? v : NaN;};
+                    const L = [1e-4, 1e-6, 1e-8].map(h => g(p - h)), R = [1e-4, 1e-6, 1e-8].map(h => g(p + h)), l = L[1], r = R[1];
+                    const close = (u, w) => isFinite(u) && isFinite(w) && Math.abs(u - w) < 1e-3 * (1 + Math.abs(u));
+                    let ans;
+                    if (close(l, r) && close(L[1], L[2]) && close(R[1], R[2])) ans = '≈ ' + n((l + r) / 2);
+                    else if (isFinite(l) && isFinite(r) && close(L[1], L[2]) && close(R[1], R[2])) ans = 'Does not exist (left limit ' + n(l) + ' ≠ right limit ' + n(r) + ')';
+                    else ans = 'Does not exist or diverges (±∞)';
+                    return {answer: ans, steps: ['Evaluate f(x) on both sides of x = ' + n(p) + ' at distances 1e-4, 1e-6, 1e-8.', 'Left side values: ' + L.map(n).join(', '), 'Right side values: ' + R.map(n).join(', '), 'Compare the two sides: ' + ans, 'This is a numerical estimate, not a symbolic proof.']};
+                }
+            }
+        ];
+        /* ---- Statistics ---- */
+        const statOps = [
+            {
+                name: 'Descriptive statistics', fields: [{l: 'Data set', ph: 'e.g. 4, 8, 15, 16, 23, 42', hint: 'Separate numbers with commas or spaces.'}, {l: 'Percentile (optional, 0–100)', ph: 'e.g. 90', opt: 1}], ex: ['4, 8, 15, 16, 23, 42', '90'],
+                run(d, pc) {
+                    const a = list(d, 'Data'), N = a.length, s = a.slice().sort((x, y) => x - y), sum = a.reduce((x, y) => x + y, 0), mean = sum / N;
+                    const cnt = {}; a.forEach(v => cnt[v] = (cnt[v] || 0) + 1); const mx = Math.max(...Object.values(cnt));
+                    const modes = mx === 1 ? 'No mode (all values occur once)' : Object.keys(cnt).filter(k => cnt[k] === mx).join(', ');
+                    const ss = a.reduce((t, v) => t + (v - mean) ** 2, 0), q = math.quantileSeq(s, [0.25, 0.5, 0.75]);
+                    const out = [['Count', N], ['Sum', n(sum)], ['Mean', n(mean)], ['Median', n(q[1])], ['Mode', modes], ['Minimum', n(s[0])], ['Maximum', n(s[N - 1])], ['Range', n(s[N - 1] - s[0])], ['Q1', n(q[0])], ['Q3', n(q[2])], ['Population variance', n(ss / N)], ['Population std. dev.', n(Math.sqrt(ss / N))]];
+                    if (N > 1) out.push(['Sample variance', n(ss / (N - 1))], ['Sample std. dev.', n(Math.sqrt(ss / (N - 1)))]);
+                    if (pc) {const p = num(pc, 'Percentile'); if (p < 0 || p > 100) throw new Error('Percentile must be between 0 and 100.'); out.push(['Percentile ' + p, n(math.quantileSeq(s, p / 100))]);}
+                    return {answer: out, steps: ['Sorted data: ' + s.join(', '), 'Mean = sum / count = ' + n(sum) + ' / ' + N + ' = ' + n(mean), 'Median = middle value of the sorted data (average of the two middle values when the count is even).', 'Sum of squared deviations = Σ(x − mean)² = ' + n(ss), 'Population variance = ' + n(ss) + ' / ' + N + (N > 1 ? '; sample variance divides by N − 1 = ' + (N - 1) : ''), 'Quartiles and percentiles use linear interpolation between ranked values.']};
+                }
+            },
+            {
+                name: 'Correlation & regression', fields: [{l: 'x values', ph: 'e.g. 1, 2, 3, 4, 5'}, {l: 'y values', ph: 'e.g. 2, 4, 5, 4, 5'}], ex: ['1, 2, 3, 4, 5', '2, 4, 5, 4, 5'],
+                run(X, Y) {
+                    const x = list(X, 'x values'), y = list(Y, 'y values'), N = x.length;
+                    if (N !== y.length) throw new Error('x and y must contain the same number of values.');
+                    if (N < 2) throw new Error('At least two data pairs are needed.');
+                    const mx = math.mean(x), my = math.mean(y);
+                    const sxx = x.reduce((t, v) => t + (v - mx) ** 2, 0), syy = y.reduce((t, v) => t + (v - my) ** 2, 0), sxy = x.reduce((t, v, i) => t + (v - mx) * (y[i] - my), 0);
+                    if (isZero(sxx)) throw new Error('All x values are identical, so a regression line cannot be fitted.');
+                    const m = sxy / sxx, b = my - m * mx, out = [['Line of best fit', 'y = ' + n(m) + 'x' + term(b, '').replace(/ $/, '')]];
+                    if (!isZero(syy)) {const r = sxy / Math.sqrt(sxx * syy); out.push(['Correlation r', n(r)], ['R²', n(r * r)]);} else out.push(['Correlation r', 'undefined (y values are constant)']);
+                    return {answer: out, steps: ['Means: x̄ = ' + n(mx) + ', ȳ = ' + n(my), 'Sxx = Σ(x − x̄)² = ' + n(sxx) + ', Syy = Σ(y − ȳ)² = ' + n(syy) + ', Sxy = Σ(x − x̄)(y − ȳ) = ' + n(sxy), 'Slope m = Sxy / Sxx = ' + n(m), 'Intercept b = ȳ − m·x̄ = ' + n(b), 'r = Sxy / √(Sxx·Syy)']};
+                }
+            }
+        ];
+        /* ---- Matrices ---- */
+        const mat2 = (name, fn, sym) => ({
+            name, fields: [{l: 'Matrix A', ph: '[[1,2],[3,4]]', area: 1}, {l: 'Matrix B', ph: '[[5,6],[7,8]]', area: 1}], ex: ['[[1,2],[3,4]]', '[[5,6],[7,8]]'],
+            run(A, B) {
+                const a = matrix(A, 'Matrix A'), b = matrix(B, 'Matrix B'); let r;
+                try {r = fn(a, b);} catch (e) {throw new Error(sym === '×' ? 'Dimensions do not match: columns of A must equal rows of B.' : 'Both matrices must have the same dimensions.');}
+                return {answer: {m: r}, steps: ['A is ' + a.length + '×' + a[0].length + ', B is ' + b.length + '×' + b[0].length, sym === '×' ? 'Each entry (i,j) = sum of row i of A times column j of B.' : 'Apply ' + sym + ' to corresponding entries.']};
+            }
+        });
+        const matOps = [
+            mat2('A + B', math.add, '+'), mat2('A − B', math.subtract, '−'), mat2('A × B', math.multiply, '×'),
+            {
+                name: 'Determinant', fields: [{l: 'Matrix A (square)', ph: '[[1,2],[3,4]]', area: 1}], ex: ['[[1,2],[3,4]]'],
+                run(A) {
+                    const a = matrix(A, 'Matrix A'); if (a.length !== a[0].length) throw new Error('Determinant needs a square matrix.'); const d = math.det(a);
+                    return {answer: 'det(A) = ' + n(d), steps: a.length === 2 ? ['For 2×2: det = ad − bc = ' + n(a[0][0]) + '·' + n(a[1][1]) + ' − ' + n(a[0][1]) + '·' + n(a[1][0]) + ' = ' + n(d)] : ['Computed by LU decomposition; det = ' + n(d), 'Detailed cofactor expansion is not shown for matrices larger than 2×2.']};
+                }
+            },
+            {
+                name: 'Inverse', fields: [{l: 'Matrix A (square)', ph: '[[1,2],[3,4]]', area: 1}], ex: ['[[1,2],[3,4]]'],
+                run(A) {
+                    const a = matrix(A, 'Matrix A'); if (a.length !== a[0].length) throw new Error('Inverse needs a square matrix.'); const d = math.det(a);
+                    if (isZero(d)) throw new Error('This matrix is singular (determinant 0), so it has no inverse.');
+                    return {answer: {m: math.inv(a)}, steps: ['det(A) = ' + n(d) + ' ≠ 0, so the inverse exists.', a.length === 2 ? 'For 2×2: A⁻¹ = (1/det) · [[d, −b], [−c, a]]' : 'Computed as A⁻¹ = adj(A) / det(A) via LU decomposition.']};
+                }
+            },
+            {
+                name: 'Transpose', fields: [{l: 'Matrix A', ph: '[[1,2,3],[4,5,6]]', area: 1}], ex: ['[[1,2,3],[4,5,6]]'],
+                run(A) {return {answer: {m: math.transpose(matrix(A, 'Matrix A'))}, steps: ['Rows become columns: entry (i,j) moves to (j,i).']};}
+            },
+            {
+                name: 'Solve Ax = b', fields: [{l: 'Matrix A (square)', ph: '[[2,1],[1,-1]]', area: 1}, {l: 'Vector b', ph: '[10, 2]'}], ex: ['[[2,1],[1,-1]]', '[10, 2]'],
+                run(A, B) {
+                    const a = matrix(A, 'Matrix A'); const b = math.evaluate(pre(B)).toArray ? math.evaluate(pre(B)).toArray() : null; if (!b || Array.isArray(b[0])) throw new Error('b must be a vector such as [10, 2].');
+                    if (a.length !== a[0].length || a.length !== b.length) throw new Error('A must be square and b must have one entry per row of A.');
+                    const d = math.det(a); if (isZero(d)) throw new Error('det(A) = 0: there is no unique solution.');
+                    const x = math.lusolve(a, b).map(r => r[0]);
+                    return {answer: x.map((v, i) => ['x' + (i + 1), n(v)]), steps: ['det(A) = ' + n(d) + ' ≠ 0, so the solution is unique.', 'Solved with LU decomposition (equivalent to Gaussian elimination).']};
+                }
+            },
+            {
+                name: 'Eigenvalues', fields: [{l: 'Matrix A (square)', ph: '[[2,0],[0,3]]', area: 1}], ex: ['[[4,1],[2,3]]'],
+                run(A) {
+                    const a = matrix(A, 'Matrix A'); if (a.length !== a[0].length) throw new Error('Eigenvalues need a square matrix.');
+                    let e; try {e = math.eigs(a);} catch (x) {throw new Error('Could not compute eigenvalues for this matrix.');}
+                    const vals = (e.values.toArray ? e.values.toArray() : e.values).map(v => n(v));
+                    return {answer: vals.map((v, i) => ['λ' + (i + 1), v]), steps: ['Eigenvalues λ satisfy det(A − λI) = 0.', 'Computed numerically by math.js; eigenvectors are not displayed.']};
+                }
+            }
+        ];
+        /* ---- Geometry: triangle solver (SSS, SAS, ASA/AAS, SSA incl. ambiguous case) + diagram ---- */
+        function triSvg(s, ang) {
+            const P = {b: [0, 0], c: [s.a, 0], a: [s.c * Math.cos(ang.b), s.c * Math.sin(ang.b)]}; // vertex labelled by its own letter
+            const xs = Object.values(P).map(p => p[0]), ys = Object.values(P).map(p => p[1]);
+            const w = Math.max(...xs) - Math.min(...xs), h = (Math.max(...ys) - Math.min(...ys)) || 1, k = Math.min(280 / w, 170 / h);
+            const V = {}; for (const l in P) V[l] = [50 - Math.min(...xs) * k + P[l][0] * k, 190 + Math.min(...ys) * k - P[l][1] * k];
+            const g = [(V.a[0] + V.b[0] + V.c[0]) / 3, (V.a[1] + V.b[1] + V.c[1]) / 3];
+            const push = (p, q, d) => {const dx = p[0] - q[0], dy = p[1] - q[1], m = Math.hypot(dx, dy) || 1; return [p[0] + dx / m * d, p[1] + dy / m * d];};
+            const T = (p, t, c) => '<text x="' + p[0].toFixed(1) + '" y="' + (p[1] + 4).toFixed(1) + '" text-anchor="middle" font-size="13" fill="' + c + '">' + t + '</text>';
+            let o = '<svg viewBox="0 0 380 240" width="380" style="max-width:100%"><polygon points="' + ['a', 'b', 'c'].map(l => V[l].map(v => v.toFixed(1)).join(',')).join(' ') + '" fill="#eaf1ff" stroke="#0f1f3d" stroke-width="2"/>';
+            const side = {a: ['b', 'c'], b: ['a', 'c'], c: ['a', 'b']};
+            ['a', 'b', 'c'].forEach(l => {
+                const m = [(V[side[l][0]][0] + V[side[l][1]][0]) / 2, (V[side[l][0]][1] + V[side[l][1]][1]) / 2];
+                o += T(push(m, g, 18), l + ' = ' + n(s[l]), '#0f1f3d') + T(push(V[l], g, 16), l.toUpperCase(), '#2563eb') + T(push(V[l], g, -30), n(ang[l] * 180 / Math.PI) + '°', '#16794c');
+            });
+            return o + '</svg>';
+        }
+        function solveTriangle(text) {
+            const sd = {}, an = {}, re = /([abcABC])\s*=\s*([^,;\s]+)/g; let m, any = false;
+            while ((m = re.exec(text))) {
+                any = true; const L = m[1], raw = m[2], v = num(raw.replace(/°$/, ''), 'Value of ' + L);
+                if (L === L.toLowerCase()) {if (v <= 0) throw new Error('Side ' + L + ' must be positive.'); sd[L] = v;}
+                else {const r = (raw.endsWith('°') || S.deg) ? v * Math.PI / 180 : v; if (r <= 0 || r >= Math.PI) throw new Error('Angle ' + L + ' must be between 0° and 180°.'); an[L.toLowerCase()] = r;}
+            }
+            const ks = Object.keys(sd), as = Object.keys(an), L3 = ['a', 'b', 'c'], deg = r => n(r * 180 / Math.PI) + '°';
+            if (!any || ks.length + as.length < 3) throw new Error('A triangle needs three independent measurements (e.g. a = 8, b = 10, C = 60°). Sides are lowercase a, b, c; the angle opposite side a is A, and so on.');
+            if (!ks.length) throw new Error('Angles alone do not fix a triangle\'s size: include at least one side.');
+            const st = ['Given: ' + ks.map(l => l + ' = ' + n(sd[l])).concat(as.map(l => l.toUpperCase() + ' = ' + deg(an[l]))).join(', '), 'Convention: angle A is opposite side a, B opposite b, C opposite c.'];
+            const sols = [], fromSides = s => {const ang = {}; L3.forEach(l => {const [p, q] = L3.filter(x => x !== l); ang[l] = Math.acos(Math.max(-1, Math.min(1, (s[p] ** 2 + s[q] ** 2 - s[l] ** 2) / (2 * s[p] * s[q]))));}); return {s, ang};};
+            if (ks.length === 3) {
+                if (sd.a + sd.b <= sd.c || sd.a + sd.c <= sd.b || sd.b + sd.c <= sd.a) throw new Error('These sides cannot form a triangle: each side must be shorter than the sum of the other two.');
+                st.push('SSS: use the cosine rule, cos A = (b² + c² − a²) / 2bc (and cyclically for B, C).'); sols.push(fromSides(sd));
+            } else if (as.length >= 2) {
+                const miss = L3.find(l => !(l in an)), sum = as.reduce((t, l) => t + an[l], 0);
+                if (miss) {if (sum >= Math.PI - 1e-12) throw new Error('The two angles add up to 180° or more, so no triangle exists.'); an[miss] = Math.PI - sum; st.push('Angle sum is 180°: ' + miss.toUpperCase() + ' = 180° − ' + deg(sum) + ' = ' + deg(an[miss]));}
+                else if (Math.abs(sum - Math.PI) > 1e-9) throw new Error('The three angles must add up to 180°.');
+                const kl = ks[0], ratio = sd[kl] / Math.sin(an[kl]), s = {}; L3.forEach(l => s[l] = ratio * Math.sin(an[l]));
+                st.push('Sine rule: a / sin A = b / sin B = c / sin C = ' + n(sd[kl]) + ' / sin(' + deg(an[kl]) + ') = ' + n(ratio)); sols.push({s, ang: an});
+            } else {
+                const al = as[0];
+                if (!(al in sd)) { // SAS: angle is between the two known sides
+                    const [p, q] = ks, s = Object.assign({}, sd); s[al] = Math.sqrt(sd[p] ** 2 + sd[q] ** 2 - 2 * sd[p] * sd[q] * Math.cos(an[al]));
+                    st.push('SAS: cosine rule, ' + al + '² = ' + p + '² + ' + q + '² − 2·' + p + '·' + q + '·cos ' + al.toUpperCase() + ' → ' + al + ' = ' + n(s[al]), 'Remaining angles from the cosine rule.'); sols.push(fromSides(s));
+                } else { // SSA: may have 0, 1 or 2 solutions
+                    const y = ks.find(l => l !== al), sinY = sd[y] * Math.sin(an[al]) / sd[al];
+                    st.push('SSA: sine rule, sin ' + y.toUpperCase() + ' = ' + y + '·sin ' + al.toUpperCase() + ' / ' + al + ' = ' + n(sinY));
+                    if (sinY > 1 + 1e-12) throw new Error('No triangle exists: sin ' + y.toUpperCase() + ' = ' + n(sinY) + ' is greater than 1.');
+                    const Y1 = Math.asin(Math.min(1, sinY));
+                    [Y1, Math.PI - Y1].forEach((Y, i) => {
+                        if (i === 1 && Math.abs(Y - Y1) < 1e-9) return;
+                        const Z = Math.PI - an[al] - Y; if (Z <= 1e-9) return;
+                        const z = L3.find(l => l !== al && l !== y), ang = {}; ang[al] = an[al]; ang[y] = Y; ang[z] = Z;
+                        const s = {}; s[al] = sd[al]; s[y] = sd[y]; s[z] = sd[al] * Math.sin(Z) / Math.sin(an[al]); sols.push({s, ang});
+                    });
+                    if (!sols.length) throw new Error('No triangle exists for these measurements.');
+                    st.push(sols.length === 2 ? 'Ambiguous case: ' + y.toUpperCase() + ' can be ' + deg(Y1) + ' or ' + deg(Math.PI - Y1) + ', so there are two valid triangles.' : 'Exactly one valid triangle exists.');
+                }
+            }
+            const out = [], svg = [];
+            sols.forEach((q, i) => {
+                const t = sols.length > 1 ? ' (triangle ' + (i + 1) + ')' : '', area = 0.5 * q.s.a * q.s.b * Math.sin(q.ang.c);
+                L3.forEach(l => out.push([l + t, n(q.s[l])])); L3.forEach(l => out.push([l.toUpperCase() + t, deg(q.ang[l])]));
+                out.push(['Perimeter' + t, n(q.s.a + q.s.b + q.s.c)], ['Area' + t, n(area)]); svg.push(triSvg(q.s, q.ang));
+                st.push('Area' + t + ' = ½·a·b·sin C = ' + n(area) + '; perimeter = a + b + c = ' + n(q.s.a + q.s.b + q.s.c));
+            });
+            return {answer: out, steps: st, svg: svg.join('')};
+        }
+        const geometryOps = [{name: 'Solve triangle', fields: [{l: 'Known sides and angles', ph: 'a = 8, b = 10, C = 60°', hint: 'Lowercase = sides, uppercase = opposite angles. Angles use degrees if you type ° (otherwise your angle-mode setting). Any valid SSS, SAS, ASA, AAS or SSA set works.'}], ex: ['a = 8, b = 10, C = 60°'], run: solveTriangle}];
+
+        /* ---- Smart problem recognition: picks the tool from what the user typed ---- */
+        function unwrap(s) {s = s.trim(); if (s[0] !== '(' || s[s.length - 1] !== ')') return s; let d = 0; for (let i = 0; i < s.length; i++) {d += s[i] === '(' ? 1 : s[i] === ')' ? -1 : 0; if (d === 0 && i < s.length - 1) return s;} return s.slice(1, -1);}
+        function smartRun(text) {
+            const t = text.trim(), T = pre(t), eqLines = t.split(/[\n;]+/).filter(s => s.includes('=')), byName = (list, nm) => list.find(o => o.name === nm);
+            let label, op, vals, m;
+            if (eqLines.length >= 2 && !/\b[abcABC]\s*=\s*[^,;\s]+\s*,/.test(t)) {label = 'Algebra → system of equations'; op = algebraOps[1]; vals = [t];}
+            else if ((m = t.match(/^d\s*\/\s*dx\s*(.+)$/i)) || (m = t.match(/^(?:derivative of|differentiate)\s+(.+)$/i))) {label = 'Calculus → derivative'; op = calculusOps[0]; vals = [unwrap(m[1]), '', ''];}
+            else if ((m = t.match(/^lim(?:it)?\s*_?\(?\s*x\s*(?:→|->|to)\s*([^\s)]+)\s*\)?\s*(.+)$/i))) {label = 'Calculus → limit'; op = calculusOps[2]; vals = [unwrap(m[2]), m[1]];}
+            else if (/^(∫|integral)/i.test(t)) throw new Error('Indefinite integrals are not available yet. For a definite integral, choose Calculus → Definite integral.');
+            else if ((m = t.match(/^(det|inv|transpose)\s*\(([\s\S]*)\)$/i))) {const nm = {det: 'Determinant', inv: 'Inverse', transpose: 'Transpose'}[m[1].toLowerCase()]; label = 'Matrices → ' + nm.toLowerCase(); op = byName(matOps, nm); vals = [m[2]];}
+            else if (/^[-+\d.eE\s,;]+$/.test(t) && t.split(/[\s,;]+/).filter(Boolean).length >= 3) {label = 'Statistics → descriptive statistics'; op = statOps[0]; vals = [t, ''];}
+            else if ((t.match(/\b[abcABC]\s*=/g) || []).length >= 2 && !hasVar(T.replace(/\b[abcABC]\s*=/g, '').replace(/[,;]/g, '+'), 'x')) {label = 'Geometry → triangle'; op = geometryOps[0]; vals = [t];}
+            else if ((m = t.match(/^(gcd|lcm)\s*\(([^)]*)\)$/i))) {label = 'Number theory → GCD & LCM'; op = ntOps[1]; vals = [m[2]];}
+            else if ((m = t.match(/^(?:is\s+)?prime\s+(\d+)\??$|^factor(?:ize)?\s+(\d+)$/i))) {label = 'Number theory → factorization'; op = ntOps[0]; vals = [m[1] || m[2]];}
+            else if ((m = t.match(/^([-+]?[\d.]+(?:e[-+]?\d+)?\s*[a-zA-Z°][\w°\/^]*)\s+(?:to|in)\s+([a-zA-Z°][\w°\/^]*)$/i))) {label = 'Units → conversion'; op = unitOps[0]; vals = [m[1], m[2]];}
+            else if (t.includes('=')) {label = 'Algebra → equation'; op = algebraOps[0]; vals = [t];}
+            else if (!t.includes('=') && !hasVar(T, 'x') && /(^|[\d)+*\/\-(\s])i($|[\s)+*\/\-^])/.test(t)) {label = 'Complex numbers'; op = complexOps[0]; vals = [t];}
+            else if (hasVar(T, 'x')) {label = 'Algebra → simplify expression'; op = algebraOps[2]; vals = [t];}
+            else {label = 'Calculator → evaluate'; op = calculatorOps[0]; vals = [t];}
+            const r = op.run(...vals);
+            r.steps.unshift('Problem recognised as: ' + label + '. If this is wrong, pick the tool from the sidebar.');
+            return r;
+        }
+        const smartOps = [{name: 'Solve', fields: [{l: 'Your mathematics problem', ph: '2x + 5 = 15', area: 1, hint: 'Examples: x² - 5x + 6 = 0 · d/dx(x³ + 2x) · lim(x→0) sin(x)/x · sin(30°) · det([[1,2],[3,4]]) · 4, 8, 15, 16 · a = 8, b = 10, C = 60°. Press Shift+Enter for a new line (e.g. two equations).'}], ex: ['a = 8, b = 10, C = 60°'], run: smartRun}];
+
+        /* ---- Probability ---- */
+        function int(str, what) {const v = num(str, what); if (!Number.isInteger(v)) throw new Error(what + ' must be a whole number.'); return v;}
+        function prob(str, what) {const v = num(str, what); if (v < 0 || v > 1) throw new Error(what + ' must be between 0 and 1.'); return v;}
+        const lnFact = k => {let t = 0; for (let i = 2; i <= k; i++) t += Math.log(i); return t;};
+        const probOps = [
+            {
+                name: 'Combinations & permutations', fields: [{l: 'n (total items)', ph: '10'}, {l: 'r (items chosen)', ph: '3'}], ex: ['10', '3'],
+                run(N, R) {
+                    const a = int(N, 'n'), r = int(R, 'r'); if (a < 0 || r < 0 || r > a) throw new Error('Need 0 ≤ r ≤ n.'); if (a > 1000) throw new Error('n is limited to 1000.');
+                    const c = math.combinations(a, r), pm = math.permutations(a, r); if (!isFinite(c) || !isFinite(pm)) throw new Error('The result is too large to display.');
+                    return {answer: [['Permutations nPr', n(pm)], ['Combinations nCr', n(c)]], steps: ['Permutations (order matters): nPr = n! / (n − r)! = ' + n(pm), 'Combinations (order does not matter): nCr = n! / (r!(n − r)!) = nPr / r! = ' + n(c)]};
+                }
+            },
+            {
+                name: 'Binomial distribution', fields: [{l: 'Number of trials n', ph: '10'}, {l: 'Success probability p', ph: '0.5 or 1/6'}, {l: 'Number of successes k', ph: '3'}], ex: ['10', '0.5', '3'],
+                run(N, P, K) {
+                    const a = int(N, 'n'), p = prob(P, 'p'), k = int(K, 'k'); if (a < 1 || a > 1000) throw new Error('n must be between 1 and 1000.'); if (k < 0 || k > a) throw new Error('k must satisfy 0 ≤ k ≤ n.');
+                    const pmf = i => p === 0 ? (i === 0 ? 1 : 0) : p === 1 ? (i === a ? 1 : 0) : Math.exp(lnFact(a) - lnFact(i) - lnFact(a - i) + i * Math.log(p) + (a - i) * Math.log(1 - p));
+                    let le = 0; for (let i = 0; i <= k; i++) le += pmf(i); const eq = pmf(k), ge = 1 - le + eq;
+                    return {
+                        answer: [['P(X = ' + k + ')', n(eq)], ['P(X ≤ ' + k + ')', n(Math.min(1, le))], ['P(X ≥ ' + k + ')', n(Math.min(1, ge))], ['Mean np', n(a * p)], ['Std. deviation', n(Math.sqrt(a * p * (1 - p)))]],
+                        steps: ['X ~ Binomial(n = ' + a + ', p = ' + n(p) + ')', 'P(X = k) = C(n,k) · p^k · (1 − p)^(n − k) with k = ' + k, 'P(X ≤ k) = sum of P(X = i) for i = 0 … k', 'P(X ≥ k) = 1 − P(X ≤ k) + P(X = k)', 'Mean = np, variance = np(1 − p)']
+                    };
+                }
+            },
+            {
+                name: 'Conditional probability', fields: [{l: 'P(A and B)', ph: '0.2'}, {l: 'P(B)', ph: '0.5'}, {l: 'P(A)', ph: '0.4', opt: 1}], ex: ['0.2', '0.5', '0.4'],
+                run(AB, B, A) {
+                    const ab = prob(AB, 'P(A and B)'), b = prob(B, 'P(B)'); if (b === 0) throw new Error('P(B) must be greater than 0.'); if (ab > b + 1e-12) throw new Error('P(A and B) cannot exceed P(B).');
+                    const out = [['P(A | B)', n(ab / b)]], st = ['P(A | B) = P(A and B) / P(B) = ' + n(ab) + ' / ' + n(b) + ' = ' + n(ab / b)];
+                    if (A) {const a = prob(A, 'P(A)'); if (ab > a + 1e-12) throw new Error('P(A and B) cannot exceed P(A).'); if (a > 0) {out.push(['P(B | A)', n(ab / a)]); st.push('P(B | A) = P(A and B) / P(A) = ' + n(ab / a));} const ind = Math.abs(ab - a * b) < 1e-9; out.push(['Independent?', ind ? 'Yes' : 'No']); st.push('Independent if P(A and B) = P(A)·P(B): ' + n(ab) + ' vs ' + n(a * b) + ' → ' + (ind ? 'equal' : 'not equal'));}
+                    return {answer: out, steps: st};
+                }
+            },
+            {
+                name: 'Expected value', fields: [{l: 'Values', ph: '1, 2, 3, 4, 5, 6'}, {l: 'Probabilities (same order)', ph: '1/6, 1/6, 1/6, 1/6, 1/6, 1/6'}], ex: ['1, 2, 3, 4, 5, 6', '1/6, 1/6, 1/6, 1/6, 1/6, 1/6'],
+                run(V, P) {
+                    const v = V.split(/[,;\s]+/).filter(Boolean).map(x => num(x, 'Value')), p = P.split(/[,;\s]+/).filter(Boolean).map(x => prob(x, 'Probability'));
+                    if (v.length !== p.length) throw new Error('Provide one probability for each value.'); const tot = p.reduce((a, b) => a + b, 0); if (Math.abs(tot - 1) > 1e-9) throw new Error('Probabilities must add up to 1 (they add up to ' + n(tot) + ').');
+                    const E = v.reduce((t, x, i) => t + x * p[i], 0), E2 = v.reduce((t, x, i) => t + x * x * p[i], 0), va = E2 - E * E;
+                    return {answer: [['E(X)', n(E)], ['Var(X)', n(va)], ['Std. deviation', n(Math.sqrt(Math.max(va, 0)))]], steps: ['E(X) = Σ x·P(x) = ' + n(E), 'E(X²) = Σ x²·P(x) = ' + n(E2), 'Var(X) = E(X²) − E(X)² = ' + n(va)]};
+                }
+            },
+            {
+                name: 'Normal distribution', fields: [{l: 'Mean μ', ph: '100'}, {l: 'Standard deviation σ', ph: '15'}, {l: 'Value x', ph: '120'}], ex: ['100', '15', '120'],
+                run(M, SD, X) {
+                    const mu = num(M, 'Mean'), sg = num(SD, 'Standard deviation'), x = num(X, 'x'); if (sg <= 0) throw new Error('Standard deviation must be positive.'); const z = (x - mu) / sg, c = 0.5 * (1 + math.erf(z / Math.SQRT2));
+                    return {answer: [['z-score', n(z)], ['P(X ≤ x)', n(c)], ['P(X ≥ x)', n(1 - c)]], steps: ['z = (x − μ) / σ = (' + n(x) + ' − ' + n(mu) + ') / ' + n(sg) + ' = ' + n(z), 'P(X ≤ x) = Φ(z) = ½(1 + erf(z/√2)) = ' + n(c), 'P(X ≥ x) = 1 − Φ(z)']};
+                }
+            }
+        ];
+        /* ---- Number theory ---- */
+        function euclid(a, b, st) {a = Math.abs(a); b = Math.abs(b); st.push('Euclidean algorithm on ' + a + ' and ' + b + ':'); while (b) {st.push('   ' + a + ' = ' + Math.floor(a / b) + ' × ' + b + ' + ' + (a % b));[a, b] = [b, a % b];} return a;}
+        const ints = str => {const a = str.split(/[,;\s]+/).filter(Boolean).map(x => int(x, 'Each value')); if (a.length < 2) throw new Error('Enter at least two whole numbers.'); if (a.some(v => v === 0 || Math.abs(v) > 1e12)) throw new Error('Use non-zero whole numbers up to 10¹².'); return a;};
+        const ntOps = [
+            {
+                name: 'Prime check & factorization', fields: [{l: 'Whole number (2 to 10¹²)', ph: '360'}], ex: ['360'],
+                run(N) {
+                    const v = int(N, 'The number'); if (v < 2 || v > 1e12) throw new Error('Enter a whole number from 2 to 1,000,000,000,000.'); const st = [], f = []; let m = v;
+                    for (let q = 2; q * q <= m; q += q === 2 ? 1 : 2) while (m % q === 0) {st.push('Divide by ' + q + ': ' + m + ' / ' + q + ' = ' + (m / q)); f.push(q); m /= q;}
+                    if (m > 1) {f.push(m); st.push(m + ' has no smaller divisor, so it is prime.');}
+                    const c = {}; f.forEach(q => c[q] = (c[q] || 0) + 1); const ks = Object.keys(c), prime = f.length === 1;
+                    const nd = ks.reduce((t, q) => t * (c[q] + 1), 1), sg = ks.reduce((t, q) => t * (Math.pow(+q, c[q] + 1) - 1) / (q - 1), 1);
+                    return {answer: [['Prime?', prime ? 'Yes' : 'No'], ['Prime factorization', prime ? v : ks.map(q => q + (c[q] > 1 ? '^' + c[q] : '')).join(' × ')], ['Number of divisors', nd], ['Sum of divisors', sg]], steps: ['Trial division by 2, then odd numbers up to √' + v + ':'].concat(st, ['Divisor count = product of (exponent + 1); divisor sum = product of (p^(e+1) − 1)/(p − 1).'])};
+                }
+            },
+            {
+                name: 'GCD & LCM', fields: [{l: 'Whole numbers', ph: '48, 180', hint: 'Two or more numbers separated by commas.'}], ex: ['48, 180'],
+                run(L) {
+                    const a = ints(L), st = []; let g = a[0], l = Math.abs(a[0]); for (let i = 1; i < a.length; i++) {g = euclid(g, a[i], st); st.push('GCD so far = ' + g);} l = a.reduce((t, x) => Math.abs(t * x) / euclid(t, x, []), 1);
+                    if (!isFinite(l) || l > 9e15) throw new Error('The LCM is too large to compute exactly.'); st.push('LCM(a, b) = |a·b| / GCD(a, b), applied across the list.'); return {answer: [['GCD', g], ['LCM', l]], steps: st};
+                }
+            },
+            {
+                name: 'Modular power', fields: [{l: 'Base a', ph: '7'}, {l: 'Exponent e (≥ 0)', ph: '128'}, {l: 'Modulus m (≥ 1)', ph: '13'}], ex: ['7', '128', '13'],
+                run(A, E, M) {
+                    const a = int(A, 'a'), e = int(E, 'e'), m = int(M, 'm'); if (e < 0 || m < 1) throw new Error('Need e ≥ 0 and m ≥ 1.'); let r = 1n, b = ((BigInt(a) % BigInt(m)) + BigInt(m)) % BigInt(m), x = BigInt(e); const M2 = BigInt(m); r %= M2;
+                    while (x > 0n) {if (x & 1n) r = r * b % M2; b = b * b % M2; x >>= 1n;} return {answer: a + '^' + e + ' mod ' + m + ' = ' + r, steps: ['Square-and-multiply: write the exponent in binary and reduce modulo ' + m + ' after every multiplication, so numbers stay small.', 'Result: ' + r]};
+                }
+            }
+        ];
+        /* ---- Complex numbers ---- */
+        const complexOps = [{
+            name: 'Complex arithmetic & forms', fields: [{l: 'Complex expression', ph: '(3 + 4i) * (1 - 2i)', hint: 'Use i for √−1. Supports + − × ÷ ^, sqrt, conj(), e.g. (1+i)^3 or (3+4i)/(1-2i).'}], ex: ['(3 + 4i) * (1 - 2i)'],
+            run(e) {
+                let z = math.evaluate(pre(e)); if (typeof z === 'number') z = math.complex(z, 0); if (math.typeOf(z) !== 'Complex') throw new Error('That did not produce a complex number.');
+                const re = z.re, im = z.im, mod = Math.hypot(re, im), rect = (c, d) => n(c) + (d < 0 ? ' − ' : ' + ') + n(Math.abs(d)) + 'i', out = [['Rectangular form', rect(re, im)], ['Real part', n(re)], ['Imaginary part', n(im)], ['Modulus |z|', n(mod)], ['Conjugate', rect(re, -im)]], st = ['Evaluated the expression using complex arithmetic (i² = −1): z = ' + rect(re, im), '|z| = √(a² + b²) = √(' + n(re) + '² + ' + n(im) + '²) = ' + n(mod), 'Conjugate: change the sign of the imaginary part.'];
+                if (mod > 1e-12) {const th = fromRad(Math.atan2(im, re)), u = S.deg ? '°' : ' rad'; out.push(['Argument', n(th) + u], ['Polar form', n(mod) + '(cos ' + n(th) + u + ' + i sin ' + n(th) + u + ')']); st.push('Argument = atan2(b, a) = ' + n(th) + u + ' (principal value)', 'Polar form: z = |z|(cos θ + i sin θ)');} else out.push(['Argument', 'undefined for 0']);
+                return {answer: out, steps: st};
+            }
+        }];
+        /* ---- Vectors ---- */
+        function vec(str, what) {const v = math.evaluate(pre(str)), a = v && v.toArray ? v.toArray() : null; if (!a || !a.length || a.some(x => typeof x !== 'number')) throw new Error(what + ' must be a vector such as [1, 2, 3].'); return a;}
+        const vs = v => '[' + v.map(n).join(', ') + ']';
+        const vectorOps = [{
+            name: 'Vector operations', fields: [{l: 'Vector A', ph: '[1, 2, 3]'}, {l: 'Vector B', ph: '[4, 5, 6]', opt: 1, hint: 'Leave B empty for magnitude and unit vector of A only.'}], ex: ['[1, 2, 3]', '[4, 5, 6]'],
+            run(A, B) {
+                const a = vec(A, 'Vector A'), mag = v => Math.sqrt(v.reduce((t, x) => t + x * x, 0)), ma = mag(a), out = [['|A|', n(ma)]], st = ['|A| = √(Σ aᵢ²) = ' + n(ma)];
+                if (ma > 0) {out.push(['Unit vector of A', vs(a.map(x => x / ma))]); st.push('Unit vector = A / |A|');} else st.push('A is the zero vector: no unit vector.');
+                if (B) {
+                    const b = vec(B, 'Vector B'); if (a.length !== b.length) throw new Error('Vectors must have the same dimension.'); const mb = mag(b), d = a.reduce((t, x, i) => t + x * b[i], 0);
+                    out.push(['|B|', n(mb)], ['A + B', vs(a.map((x, i) => x + b[i]))], ['A − B', vs(a.map((x, i) => x - b[i]))], ['A · B', n(d)]); st.push('A ± B: add or subtract matching components.', 'Dot product A · B = Σ aᵢbᵢ = ' + n(d));
+                    if (ma > 0 && mb > 0) {const th = fromRad(Math.acos(Math.max(-1, Math.min(1, d / (ma * mb))))); out.push(['Angle between', n(th) + (S.deg ? '°' : ' rad')], ['Projection of A onto B', vs(b.map(x => d / (mb * mb) * x))]); st.push('cos θ = A·B / (|A||B|) → θ = ' + n(th), 'proj_B A = (A·B / |B|²) B');}
+                    if (a.length === 3) {const c = math.cross(a, b); out.push(['A × B', vs(c)]); st.push('Cross product A × B = (a₂b₃ − a₃b₂, a₃b₁ − a₁b₃, a₁b₂ − a₂b₁)');} else if (a.length === 2) {out.push(['A × B (z-component)', n(a[0] * b[1] - a[1] * b[0])]);}
+                }
+                return {answer: out, steps: st};
+            }
+        }];
+        /* ---- Units ---- */
+        const unitOps = [{
+            name: 'Unit conversion', fields: [{l: 'Quantity', ph: '5 km', hint: 'Length, area (m^2), volume (L), mass, time, speed (km/h), temperature (degC, degF, kelvin), angle (deg, rad), and more.'}, {l: 'Convert to', ph: 'miles'}], ex: ['5 km', 'miles'],
+            run(Q, T) {
+                let u; try {u = math.unit(Q.replace(/°/g, 'deg'));} catch (e) {throw new Error('Could not read "' + Q + '". Write a number then a unit, e.g. 5 km, 100 degC, 60 mph.');}
+                let v; try {v = u.toNumber(T.replace(/°/g, 'deg'));} catch (e) {throw new Error('Cannot convert ' + Q + ' to ' + T + ': the units are unknown or measure different things.');}
+                return {answer: n(v) + ' ' + T, steps: ['Both units are expressed through SI base units, so ' + Q + ' = ' + n(v) + ' ' + T + '.', /deg[CF]|kelvin|degR/.test(Q + T) ? 'Temperature conversion includes an offset, not only a factor.' : 'Conversion factor: 1 ' + Q.replace(/^[-+\d.eE\s]+/, '') + ' = ' + n(math.unit(1, Q.replace(/^[-+\d.eE\s]+/, '')).toNumber(T.replace(/°/g, 'deg'))) + ' ' + T]};
+            }
+        }];
+
+        /* ---- Category registry (sidebar groups). Graphing has its own workspace. ---- */
+        const TOOLS = {
+            solve: {name: 'Solve anything', group: 'Essentials', sub: 'Type a problem. Mr.Calculator identifies it, chooses a method and shows the steps.', ops: smartOps},
+            calculator: {name: 'Calculator', group: 'Essentials', sub: 'Evaluate arithmetic and scientific expressions.', ops: calculatorOps},
+            graphing: {name: 'Graphing', group: 'Essentials', sub: 'Plot several functions, drag to pan, scroll to zoom.', graph: true},
+            algebra: {name: 'Algebra', group: 'Algebra and calculus', sub: 'Solve equations and systems, simplify expressions, with worked steps.', ops: algebraOps},
+            calculus: {name: 'Calculus', group: 'Algebra and calculus', sub: 'Derivatives, definite integrals and limits.', ops: calculusOps},
+            geometry: {name: 'Geometry', group: 'Geometry and trigonometry', sub: 'Solve triangles from any valid combination of sides and angles, with a labelled diagram.', ops: geometryOps},
+            statistics: {name: 'Statistics', group: 'Data and matrices', sub: 'Summarise data sets and fit a regression line.', ops: statOps},
+            matrices: {name: 'Matrices', group: 'Data and matrices', sub: 'Matrix arithmetic, determinant, inverse, linear systems and eigenvalues.', ops: matOps},
+            probability: {name: 'Probability', group: 'More mathematics', sub: 'Counting, binomial and normal distributions, conditional probability, expected value.', ops: probOps},
+            numbertheory: {name: 'Number theory', group: 'More mathematics', sub: 'Primes, factorization, GCD, LCM and modular arithmetic.', ops: ntOps},
+            complex: {name: 'Complex numbers', group: 'More mathematics', sub: 'Arithmetic, modulus, argument, conjugate and polar form.', ops: complexOps},
+            vectors: {name: 'Vectors', group: 'More mathematics', sub: 'Magnitude, sum, dot and cross product, angle and projection.', ops: vectorOps},
+            units: {name: 'Units', group: 'More mathematics', sub: 'Convert between common units.', ops: unitOps}
+        };
+
+        /* =====================================================================
+           NAVIGATION + RENDERING
+           ===================================================================== */
+        function renderSide() {
+            let h = '', g = '';
+            Object.keys(TOOLS).forEach(k => {const t = TOOLS[k]; if (t.group !== g) {g = t.group; h += '<p class="side-title">' + g + '</p>';} h += '<button class="category' + (k === cat && view === 'home' ? ' selected' : '') + '" data-cat="' + k + '" type="button">' + t.name + '</button>';});
+            $('side').innerHTML = h;
+        }
+        function setView(v) {
+            view = v;
+            ['home', 'history', 'settings'].forEach(k => $(k + 'Btn').classList.toggle('active', k === v));
+            renderSide(); renderMain();
+        }
+        function renderMain() {
+            if (view === 'history') return renderHistory();
+            if (view === 'settings') return renderSettings();
+            const t = TOOLS[cat];
+            if (t.graph) return renderGraph();
+            const o = t.ops[opi];
+            let h = '<h1>' + t.name + '</h1><p class="subtitle">' + t.sub + '</p><section class="workspace">';
+            if (t.ops.length > 1) h += '<div class="ops">' + t.ops.map((p, i) => '<button class="op' + (i === opi ? ' on' : '') + '" data-op="' + i + '" type="button">' + esc(p.name) + '</button>').join('') + '</div>';
+            o.fields.forEach((f, i) => {
+                h += '<div class="field"><label for="f' + i + '">' + esc(f.l) + (f.opt ? ' (optional)' : '') + '</label>' +
+                    (f.area ? '<textarea id="f' + i + '" rows="3" placeholder="' + esc(f.ph) + '" spellcheck="false"></textarea>' : '<input id="f' + i + '" type="text" autocomplete="off" placeholder="' + esc(f.ph) + '">') +
+                    (f.hint ? '<div class="hint">' + esc(f.hint) + '</div>' : '') + '</div>';
+            });
+            h += '<div class="actions"><button class="btn" id="go" type="button">Calculate</button><button class="btn ghost" id="ex" type="button">Try an example</button></div>' +
+                '<div class="result"><div class="rhead"><strong>Result</strong><span id="status">Ready</span></div><div id="answer" aria-live="polite">Enter a problem above and press Calculate.</div>' +
+                '<details class="steps" id="stepsBox" hidden open><summary>Solution steps</summary><ol id="steps"></ol></details></div></section>';
+            $('main').innerHTML = h;
+        }
+        function showResult(r) {
+            const a = $('answer'); a.className = 'ok';
+            if (Array.isArray(r.answer)) a.innerHTML = '<div class="kv">' + r.answer.map(p => '<b>' + esc(p[0]) + '</b><span>' + esc(p[1]) + '</span>').join('') + '</div>';
+            else if (r.answer && r.answer.m) a.innerHTML = '<table class="mx">' + math.matrix(r.answer.m).toArray().map(row => '<tr>' + row.map(v => '<td>' + esc(n(v)) + '</td>').join('') + '</tr>').join('') + '</table>';
+            else a.textContent = r.answer;
+            if (r.svg) a.insertAdjacentHTML('beforeend', '<div style="margin-top:14px">' + r.svg + '</div>');
+            $('status').textContent = 'Solved';
+            $('stepsBox').hidden = false; $('steps').innerHTML = r.steps.map(s => '<li>' + esc(s).replace(/ {3}/g, '&emsp;') + '</li>').join('');
+        }
+        function showError(msg) {
+            const a = $('answer'); a.className = 'err'; a.textContent = msg; $('status').textContent = 'Check input'; $('stepsBox').hidden = true;
+        }
+        function textOf(ans) {return Array.isArray(ans) ? ans.map(p => p[0] + ' = ' + p[1]).join('; ') : (ans && ans.m ? JSON.stringify(ans.m.map(r => r.map(v => +(+v).toFixed(6)))) : String(ans));}
+        function calculate() {
+            const t = TOOLS[cat], o = t.ops[opi], v = o.fields.map((f, i) => $('f' + i).value.trim());
+            try {
+                const miss = o.fields.find((f, i) => !f.opt && !v[i]);
+                if (miss) throw new Error('Please fill in: ' + miss.l + '.');
+                const r = o.run(...v);
+                showResult(r);
+                hist.push({cat: t.name, op: o.name, input: v.filter(Boolean).join('  |  '), res: textOf(r.answer), angle: S.deg ? 'deg' : 'rad'});
+            } catch (e) {
+                showError(friendly(e));
+            }
+        }
+        function friendly(e) {
+            const m = e.message || String(e);
+            if (/Undefined symbol/.test(m)) return m.replace('Undefined symbol ', 'Unknown name: ') + '. Use the variable x where needed, and check spelling.';
+            if (/Unexpected|Parenthesis|Value expected|Syntax|Invalid/i.test(m)) return 'Invalid mathematical syntax: ' + m;
+            if (/Dimension mismatch/i.test(m)) return 'Dimensions do not match.';
+            return m;
+        }
+        function renderHistory() {
+            $('main').innerHTML = '<h1>History</h1><p class="subtitle">Calculations from this browser session only. They are cleared when the page is reloaded.</p><section class="workspace">' +
+                (hist.length ? '<div class="actions" style="margin-bottom:8px"><button class="btn ghost" id="clearH" type="button">Clear history</button></div>' + hist.slice().reverse().map(h => '<div class="hitem"><small>' + esc(h.cat) + ' · ' + esc(h.op) + (h.angle ? ' · ' + h.angle : '') + '</small>' + esc(h.input) + '<br><strong>' + esc(h.res) + '</strong></div>').join('') : 'No calculations yet. Results appear here after you calculate or graph.') + '</section>';
+        }
+        function renderSettings() {
+            const sel = (id, opts, cur) => '<select id="' + id + '">' + opts.map(o => '<option value="' + o[0] + '"' + (String(o[0]) === String(cur) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+            $('main').innerHTML = '<h1>Settings</h1><p class="subtitle">These apply to all tools for this session.</p><section class="workspace"><div class="set">' +
+                '<label for="sAngle">Angle mode</label>' + sel('sAngle', [['deg', 'Degrees'], ['rad', 'Radians']], S.deg ? 'deg' : 'rad') +
+                '<label for="sPrec">Decimal places / digits</label>' + sel('sPrec', [...Array(13).keys()].map(i => [i, i]), S.prec) +
+                '<label for="sNot">Number format</label>' + sel('sNot', [['auto', 'Automatic (trim trailing zeros)'], ['fixed', 'Fixed decimals'], ['sci', 'Scientific notation']], S.notation) +
+                '</div></section>';
+        }
+
+        /* =====================================================================
+           GRAPHING (canvas; pan, zoom, multiple functions, grid, labels)
+           ===================================================================== */
+        const COLORS = ['#2563eb', '#0f1f3d', '#16794c', '#b45309', '#7c3aed', '#0e7490'];
+        const G = {fns: ['x^2', '2x + 1'], cx: 0, cy: 0, sc: 40};
+        function renderGraph() {
+            $('main').innerHTML = '<h1>Graphing</h1><p class="subtitle">' + TOOLS.graphing.sub + '</p><section class="workspace"><div id="grows"></div>' +
+                '<div class="actions" style="margin:10px 0 16px"><button class="btn ghost" id="addFn" type="button">Add function</button><button class="btn ghost" id="resetView" type="button">Reset view</button><span class="hint" id="coord">Type functions of x, e.g. y = sin(x). Drag to pan, scroll to zoom.</span></div><canvas id="cv"></canvas></section>';
+            drawRows(); drawGraph();
+        }
+        function drawRows() {
+            $('grows').innerHTML = G.fns.map((f, i) => '<div class="grow"><i style="background:' + COLORS[i % 6] + '"></i><input type="text" data-fn="' + i + '" value="' + esc(f) + '" aria-label="Function ' + (i + 1) + '" placeholder="y = x^2"><button class="btn ghost" data-rm="' + i + '" type="button" aria-label="Remove function ' + (i + 1) + '">Remove</button></div>').join('');
+        }
+        function drawGraph() {
+            const c = $('cv'); if (!c) return;
+            const r = c.getBoundingClientRect(), d = window.devicePixelRatio || 1; c.width = r.width * d; c.height = r.height * d;
+            const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
+            const W = r.width, H = r.height, X = x => W / 2 + (x - G.cx) * G.sc, Y = y => H / 2 - (y - G.cy) * G.sc;
+            g.clearRect(0, 0, W, H);
+            /* grid spacing: 1, 2 or 5 times a power of ten, at least 60px apart */
+            const raw = 60 / G.sc, p = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 5, 10].map(m => m * p).find(s => s >= raw);
+            const x0 = G.cx - W / 2 / G.sc, x1 = G.cx + W / 2 / G.sc, y0 = G.cy - H / 2 / G.sc, y1 = G.cy + H / 2 / G.sc;
+            g.font = '12px "Segoe UI",Arial'; g.lineWidth = 1;
+            for (let x = Math.ceil(x0 / st) * st; x <= x1; x += st) {g.strokeStyle = '#e6ebf3'; g.beginPath(); g.moveTo(X(x), 0); g.lineTo(X(x), H); g.stroke();}
+            for (let y = Math.ceil(y0 / st) * st; y <= y1; y += st) {g.strokeStyle = '#e6ebf3'; g.beginPath(); g.moveTo(0, Y(y)); g.lineTo(W, Y(y)); g.stroke();}
+            g.strokeStyle = '#0f1f3d'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(X(0), 0); g.lineTo(X(0), H); g.moveTo(0, Y(0)); g.lineTo(W, Y(0)); g.stroke();
+            g.fillStyle = '#5f6b7d'; const ax = Math.min(Math.max(X(0), 0), W - 4), ay = Math.min(Math.max(Y(0), 12), H - 4), lab = v => +v.toPrecision(6);
+            g.textAlign = 'center'; for (let x = Math.ceil(x0 / st) * st; x <= x1; x += st) if (Math.abs(x) > st / 2) g.fillText(lab(x), X(x), Math.min(ay + 14, H - 4));
+            g.textAlign = 'right'; for (let y = Math.ceil(y0 / st) * st; y <= y1; y += st) if (Math.abs(y) > st / 2) g.fillText(lab(y), Math.min(ax - 5, W - 6) < 24 ? 28 : ax - 5, Y(y) + 4);
+            g.fillText('0', ax - 5, ay + 14);
+            const sc = scope(); let bad = false;
+            document.querySelectorAll('[data-fn]').forEach(inp => {
+                const i = +inp.dataset.fn, src = G.fns[i].replace(/^\s*y\s*=/i, '').trim(); inp.classList.remove('bad');
+                if (!src) return;
+                let node; try {node = math.compile(pre(src)); node.evaluate(Object.assign({x: 1}, sc));} catch (e) {inp.classList.add('bad'); bad = true; return;}
+                g.strokeStyle = COLORS[i % 6]; g.lineWidth = 2.2; g.beginPath(); let pen = false, py = 0;
+                for (let px = 0; px <= W; px++) {
+                    sc.x = G.cx + (px - W / 2) / G.sc; let y; try {y = node.evaluate(sc);} catch (e) {y = NaN;}
+                    const sy = typeof y === 'number' ? Y(y) : NaN;
+                    if (!isFinite(sy) || Math.abs(sy) > 1e5) {pen = false; continue;}
+                    if (pen && Math.abs(sy - py) < H * 2) g.lineTo(px, sy); else g.moveTo(px, sy);
+                    pen = true; py = sy;
+                }
+                g.stroke();
+            });
+            c._t = {X, Y, W, H};
+        }
+        (function graphEvents() {
+            let drag = null;
+            document.addEventListener('mousedown', e => {if (e.target.id === 'cv') drag = {x: e.clientX, y: e.clientY, cx: G.cx, cy: G.cy};});
+            window.addEventListener('mouseup', () => drag = null);
+            window.addEventListener('mousemove', e => {
+                if (drag) {G.cx = drag.cx - (e.clientX - drag.x) / G.sc; G.cy = drag.cy + (e.clientY - drag.y) / G.sc; drawGraph();}
+                else if (e.target.id === 'cv') {const r = e.target.getBoundingClientRect(); $('coord').textContent = 'x = ' + +(G.cx + (e.clientX - r.left - r.width / 2) / G.sc).toPrecision(5) + ',  y = ' + +(G.cy - (e.clientY - r.top - r.height / 2) / G.sc).toPrecision(5);}
+            });
+            document.addEventListener('wheel', e => {
+                if (e.target.id !== 'cv') return; e.preventDefault();
+                const r = e.target.getBoundingClientRect(), mx = G.cx + (e.clientX - r.left - r.width / 2) / G.sc, my = G.cy - (e.clientY - r.top - r.height / 2) / G.sc;
+                G.sc = Math.min(Math.max(G.sc * (e.deltaY < 0 ? 1.15 : 1 / 1.15), 0.05), 1e6);
+                G.cx = mx - (e.clientX - r.left - r.width / 2) / G.sc; G.cy = my + (e.clientY - r.top - r.height / 2) / G.sc; drawGraph();
+            }, {passive: false});
+            window.addEventListener('resize', drawGraph);
+        })();
+
+        /* =====================================================================
+           EVENT WIRING (delegated, so re-rendering never loses handlers)
+           ===================================================================== */
+        $('homeBtn').onclick = () => setView('home');
+        $('historyBtn').onclick = () => setView('history');
+        $('settingsBtn').onclick = () => setView('settings');
+        document.addEventListener('click', e => {
+            const t = e.target, id = t.id;
+            if (t.dataset.cat) {cat = t.dataset.cat; opi = 0; setView('home');}
+            else if (t.dataset.op) {opi = +t.dataset.op; renderMain();}
+            else if (id === 'go') calculate();
+            else if (id === 'ex') TOOLS[cat].ops[opi].ex.forEach((v, i) => $('f' + i).value = v);
+            else if (id === 'clearH') {hist.length = 0; renderHistory();}
+            else if (id === 'addFn') {G.fns.push(''); drawRows(); const l = document.querySelectorAll('[data-fn]'); l[l.length - 1].focus();}
+            else if (t.dataset.rm) {G.fns.splice(+t.dataset.rm, 1); drawRows(); drawGraph();}
+            else if (id === 'resetView') {G.cx = 0; G.cy = 0; G.sc = 40; drawGraph();}
+        });
+        document.addEventListener('input', e => {
+            if (e.target.dataset.fn !== undefined) {G.fns[+e.target.dataset.fn] = e.target.value; drawGraph(); clearTimeout(G.t); G.t = setTimeout(() => {const v = G.fns.filter(f => f.trim()).join(' ; '); if (v && G.fns.every(f => !f.trim() || !document.querySelector('.bad'))) {if (hist.length && hist[hist.length - 1].cat === 'Graphing') hist.pop(); hist.push({cat: 'Graphing', op: 'Plot', input: v, res: 'Graph displayed'});} }, 1200);}
+        });
+        document.addEventListener('keydown', e => {if (e.key === 'Enter' && !e.shiftKey && /^f\d$/.test(e.target.id || '')) {e.preventDefault(); calculate();} });
+        document.addEventListener('change', e => {
+            if (e.target.id === 'sAngle') S.deg = e.target.value === 'deg';
+            if (e.target.id === 'sPrec') S.prec = +e.target.value;
+            if (e.target.id === 'sNot') S.notation = e.target.value;
+        });
+
+        /* Start: fail clearly if the math library could not load (for example, when offline). */
+        if (typeof math === 'undefined') {
+            $('main').innerHTML = '<h1>Math engine not loaded</h1><p class="subtitle">Mr.Calculator needs an internet connection to load the math.js library from cdnjs.cloudflare.com. Reconnect and reload the page.</p>';
+        } else setView('home');
+    </script>
+</body>
+
+</html>
